@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 400" fill="none">
+  <defs>
+    <linearGradient id="bagGrad" x1="180" y1="52" x2="180" y2="252" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8AE65A"/>
+      <stop offset="0.4" stop-color="#34D399"/>
+      <stop offset="1" stop-color="#0D9488"/>
+    </linearGradient>
+    <linearGradient id="iqGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FACC15"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="360" height="400" fill="#000"/>
+  <!-- Shopping bag -->
+  <path fill="url(#bagGrad)" d="M88 116c0-5 4-9 9-9h166c5 0 9 4 9 9l-10 158c-1 13-11 23-24 23H122c-13 0-23-10-24-23L88 116z"/>
+  <path fill="#72DD56" d="M124 108a52 52 0 0 1 52-48h8a52 52 0 0 1 52 48v10h-14v-8a38 38 0 0 0-76 0v8h-14v-10z"/>
+  <ellipse cx="132" cy="132" rx="32" ry="16" fill="#fff" opacity="0.2"/>
+  <!-- Stylized S -->
+  <path fill="#fff" stroke="#134E6F" stroke-width="3" stroke-linejoin="round"
+    d="M196 128c-26 0-40 12-40 28 0 14 12 22 34 28 18 5 26 10 26 20 0 14-14 22-36 22-14 0-26-4-34-10l-8 14c10 8 26 12 44 12 30 0 48-14 48-34 0-16-14-26-36-32-16-5-24-10-24-18 0-10 12-16 30-16 8 0 18 2 26 6l6-14c-8-4-20-6-32-6z"/>
+  <!-- Arrow on S -->
+  <path fill="#fff" stroke="#134E6F" stroke-width="2" stroke-linejoin="round"
+    d="M212 104 238 96 228 118 216 112z"/>
+  <!-- Sparkles -->
+  <circle cx="98" cy="92" r="3" fill="#fff" opacity="0.9"/>
+  <circle cx="262" cy="100" r="2.5" fill="#fff" opacity="0.85"/>
+  <circle cx="272" cy="140" r="2" fill="#fff" opacity="0.75"/>
+  <!-- Cart -->
+  <g transform="translate(230 204)">
+    <path stroke="#134E6F" stroke-width="1.5" fill="#fff" d="M1 6h9l2.5 14H30l3.5-10H14"/>
+    <circle cx="13" cy="24" r="2.5" fill="#F97316"/>
+    <circle cx="25" cy="24" r="2.5" fill="#F97316"/>
+  </g>
+  <ellipse cx="180" cy="288" rx="100" ry="5" fill="#38BDF8" opacity="0.2" filter="url(#softGlow)"/>
+  <!-- Wordmark -->
+  <text x="180" y="348" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#fff">smart</tspan><tspan fill="url(#iqGrad)">IQ</tspan>
+  </text>
+</svg>
