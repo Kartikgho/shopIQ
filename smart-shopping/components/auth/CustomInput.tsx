@@ -78,10 +78,10 @@ export function CustomInput({
     const border = errorMessage
       ? PREMIUM.error
       : interpolateColor(
-          focusProgress.value,
-          [0, 1],
-          [PREMIUM.border, PREMIUM.borderFocus],
-        );
+        focusProgress.value,
+        [0, 1],
+        [PREMIUM.border, PREMIUM.borderFocus],
+      );
     return {
       borderColor: border,
       shadowOpacity: errorMessage ? 0.06 : 0.08 + focusProgress.value * 0.14,

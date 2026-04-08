@@ -222,6 +222,8 @@ export function SignIn() {
             onChangeText={setResetCode}
             keyboardType="number-pad"
             autoCapitalize="none"
+            textContentType="oneTimeCode"
+            maxLength={6}
             showPasswordToggle={false}
           />
           <CustomInput
@@ -238,7 +240,7 @@ export function SignIn() {
             title={resetBusy ? 'Updating…' : 'Update password'}
             onPress={() => void completePasswordReset()}
             loading={resetBusy}
-            disabled={!resetCode.trim() || !newPassword}
+            disabled={resetCode.trim().length < 6 || !newPassword}
           />
           <Pressable onPress={() => setForgotStep('email')} style={styles.linkRow}>
             <Text style={styles.link}>Use a different email</Text>

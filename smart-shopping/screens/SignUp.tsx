@@ -167,8 +167,8 @@ export function SignUp() {
   const nameErr = error && error.toLowerCase().includes('name') ? error : undefined;
   const emailErr =
     error &&
-    (error.toLowerCase().includes('email') || error.toLowerCase().includes('account')) &&
-    !nameErr
+      (error.toLowerCase().includes('email') || error.toLowerCase().includes('account')) &&
+      !nameErr
       ? error
       : undefined;
   const formErr = error && !nameErr && !emailErr ? error : undefined;
@@ -190,6 +190,8 @@ export function SignUp() {
             }}
             keyboardType="number-pad"
             autoCapitalize="none"
+            textContentType="oneTimeCode"
+            maxLength={6}
             errorMessage={error || undefined}
             showPasswordToggle={false}
           />
@@ -197,9 +199,9 @@ export function SignUp() {
             title="Continue"
             onPress={() => void verify()}
             loading={authBusy}
-            disabled={code.trim().length < 4}
+            disabled={code.trim().length < 6}
           />
-          <Pressable onPress={() => router.push(hrefSignIn)} style={styles.footer}>
+          <Pressable onPress={() => setPendingVerification(false)} style={styles.footer}>
             <Text style={styles.footerText}>
               Wrong email? <Text style={styles.footerLink}>Start over</Text>
             </Text>
@@ -219,6 +221,7 @@ export function SignUp() {
           label="Name"
           icon="user"
           value={firstName}
+          placeholder='John Doe'
           onChangeText={(t) => {
             setFirstName(t);
             if (error) setError('');
@@ -230,6 +233,7 @@ export function SignUp() {
         <CustomInput
           label="Email"
           icon="mail"
+          placeholder='johndoe@gmail.com'
           value={email}
           onChangeText={(t) => {
             setEmail(t);
@@ -249,6 +253,7 @@ export function SignUp() {
           onChangeText={onPasswordChange}
           secureTextEntry
           autoCapitalize="none"
+          placeholder='********'
           textContentType="newPassword"
           errorMessage={passwordFieldError || undefined}
         />
@@ -260,6 +265,7 @@ export function SignUp() {
           onChangeText={onConfirmChange}
           secureTextEntry
           autoCapitalize="none"
+          placeholder='********'
           textContentType="newPassword"
           errorMessage={confirmFieldError || undefined}
         />
