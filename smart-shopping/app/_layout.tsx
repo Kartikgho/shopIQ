@@ -43,8 +43,21 @@ export default function RootLayout() {
             }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="savings/index"
+              options={{
+                headerShown: true,
+                title: 'Savings',
+                headerStyle: { backgroundColor: '#FFFFFF' },
+                headerTitleStyle: { color: '#111827', fontWeight: '700' },
+                headerTintColor: '#111827',
+                headerShadowVisible: false,
+              }}
+            />
             <Stack.Screen name="compare/[id]" />
+            <Stack.Screen name="legal/terms" />
+            <Stack.Screen name="legal/privacy" />
             <Stack.Screen
               name="login"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

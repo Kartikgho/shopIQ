@@ -20,7 +20,7 @@ export function PremiumAuthLayout({ children }: PremiumAuthLayoutProps) {
     <View style={styles.root}>
       <LinearGradient
         colors={[PREMIUM_GRAD.bgTop, PREMIUM_GRAD.bgMid, PREMIUM.pageBg]}
-        locations={[0, 0.42, 1]}
+        locations={[0, 0.38, 1]}
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
@@ -37,7 +37,7 @@ export function PremiumAuthLayout({ children }: PremiumAuthLayoutProps) {
           contentContainerStyle={[
             styles.scroll,
             {
-              paddingTop: Math.max(insets.top, 20),
+              paddingTop: Math.max(insets.top, 24),
               paddingBottom: Math.max(insets.bottom, 28),
             },
           ]}
@@ -51,10 +51,10 @@ export function PremiumAuthLayout({ children }: PremiumAuthLayoutProps) {
 }
 
 const PREMIUM_GRAD = {
-  bgTop: '#EEF2FF',
+  bgTop: '#F9FAFB',
   bgMid: '#F3F4F6',
-  overlayDeep: 'rgba(30, 58, 138, 0.14)',
-  overlaySoft: 'rgba(59, 130, 246, 0.06)',
+  overlayDeep: 'rgba(17, 24, 39, 0.02)',
+  overlaySoft: 'rgba(59, 130, 246, 0.05)',
 };
 
 const styles = StyleSheet.create({
@@ -68,9 +68,9 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 22,
+    paddingHorizontal: 24,
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 400,
     alignSelf: 'center',
   },
 });

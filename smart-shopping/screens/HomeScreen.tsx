@@ -1,124 +1,88 @@
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
-import { Header } from '@/components/Header';
-import { SearchBar } from '@/components/SearchBar';
-import { CustomButton } from '@/components/CustomButton';
-import { FeaturedCarousel } from '@/components/FeaturedCarousel';
-import { PlatformLogos } from '@/components/PlatformLogos';
-import { getFeaturedProducts } from '@/data/mockData';
+import { BannerCarousel } from '@/components/premium/BannerCarousel';
+import { FilterChips } from '@/components/premium/FilterChips';
+import { FloatingActionButton } from '@/components/premium/FloatingActionButton';
+import { PremiumProductCard } from '@/components/premium/PremiumProductCard';
+import { PremiumSearchBar } from '@/components/premium/PremiumSearchBar';
+import { SectionHeader } from '@/components/premium/SectionHeader';
 import { theme } from '@/constants/theme';
+import { categories, getFeaturedProducts, homeBanners } from '@/data/mockData';
+import { hrefCompare } from '@/utils/hrefs';
 
 export function HomeScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState('all');
   const featured = getFeaturedProducts();
 
-  const submitSearch = () => {
-    const q = query.trim();
-    if (q) router.push({ pathname: '/search', params: { q } });
-    else router.push('/search');
-  };
+  const filtered = useMemo(() => {
+    if (categoryId === 'all') return featured;
+    return featured.filter((item) => item.category === categoryId);
+  }, [categoryId, featured]);
 
   return (
     <View style={styles.page}>
-      <Header />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <SearchBar
-          placeholder="Search phones, audio, appliances..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmit={submitSearch}
-          onClear={() => setQuery('')}
-        />
-
-        <Animated.View entering={FadeInDown.duration(380)} style={styles.hero}>
-          <Text style={styles.tagline}>Never overpay again</Text>
-          <Text style={styles.heroTitle}>Compare prices. Stack coupons. Save with confidence.</Text>
-          <Text style={styles.heroSub}>
-            Real-time style compare across top stores — curated deals without the noise.
-          </Text>
-          <CustomButton label="Start searching" onPress={() => router.push('/search')} />
-        </Animated.View>
-
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>Featured deals</Text>
-          <Pressable onPress={() => router.push('/deals')}>
-            <Text style={styles.link}>See all</Text>
-          </Pressable>
-        </View>
-        <FeaturedCarousel products={featured} />
-
-        <Text style={[styles.sectionTitle, styles.trustedTitle]}>Trusted platforms</Text>
-        <Text style={styles.trustedSub}>Prices checked across partners you already use</Text>
-        <PlatformLogos />
-      </ScrollView>
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <View style={styles.headerBlock}>
+            <Text style={styles.greeting}>Welcome to IQ</Text>
+            <Text style={styles.subtitle}>Smarter shopping starts here</Text>
+            <PremiumSearchBar
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search products, categories, brands"
+              onSubmit={() => router.push({ pathname: '/search', params: { q: query } })}
+            />
+            <BannerCarousel items={homeBanners} />
+            <SectionHeader title="Categories" subtitle="Personalized picks for your shopping style" />
+            <FilterChips items={categories} selectedId={categoryId} onSelect={setCategoryId} />
+            <SectionHeader title="Featured Deals" actionLabel="View all" onActionPress={() => router.push('/deals')} />
+          </View>
+        }
+        renderItem={({ item }) => (
+          <PremiumProductCard
+            title={item.title}
+            image={item.image}
+            price={item.offers[item.bestOfferIndex].price}
+            platform={item.offers[item.bestOfferIndex].platform}
+            subtitle={`${item.rating} stars · ${item.reviewCount} reviews`}
+            onPress={() => router.push(hrefCompare(item.id))}
+          />
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        ListFooterComponent={<View style={{ height: 84 }} />}
+      />
+      <FloatingActionButton onPress={() => router.push('/search')} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  page: { flex: 1, backgroundColor: theme.colors.background },
   content: {
     width: '100%',
-    maxWidth: 520,
+    maxWidth: theme.layout.contentMaxWidth,
     alignSelf: 'center',
-    padding: theme.spacing.lg,
-    gap: theme.spacing.lg,
-    paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
-  hero: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    gap: theme.spacing.sm,
-    ...theme.shadow.card,
+  headerBlock: { gap: 16, marginBottom: 16 },
+  greeting: {
+    color: theme.colors.text,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
   },
-  tagline: {
-    ...theme.typography.micro,
-    color: theme.colors.primaryMid,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    ...theme.typography.title,
-    color: theme.colors.textPrimary,
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  heroSub: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
-  },
-  sectionHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: theme.spacing.sm,
-  },
-  sectionTitle: {
-    ...theme.typography.title,
-    color: theme.colors.textPrimary,
-  },
-  link: {
-    ...theme.typography.caption,
-    color: theme.colors.primaryMid,
-    fontWeight: '700',
-  },
-  trustedTitle: {
-    marginTop: theme.spacing.xl,
-  },
-  trustedSub: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    marginTop: -8,
+  subtitle: {
+    color: theme.colors.subtext,
+    fontSize: 14,
+    marginTop: -10,
+    marginBottom: 4,
   },
 });

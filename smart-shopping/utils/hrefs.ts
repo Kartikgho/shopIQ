@@ -7,10 +7,9 @@ export function hrefCompare(productId: string): Href {
 /** Signed-in home (tabs). */
 export const hrefHome: Href = '/(tabs)/home' as Href;
 
-export const hrefPremiumSavings: Href = '/premium-savings' as Href;
-
 /** Wishlist tab */
 export const hrefSaved: Href = '/saved' as Href;
+export const hrefSavings: Href = '/savings' as Href;
 
 /** Clerk auth (Expo Router group) */
 export const hrefSignIn: Href = '/(auth)/sign-in' as Href;

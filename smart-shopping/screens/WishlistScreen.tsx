@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Header } from '@/components/Header';
-import { ProductCard } from '@/components/ProductCard';
-import { getCatalogProduct } from '@/data/mockData';
+import { SectionHeader } from '@/components/premium/SectionHeader';
+import { WishlistCard } from '@/components/premium/WishlistCard';
 import { useWishlist } from '@/context/WishlistContext';
 import { theme } from '@/constants/theme';
+import { getCatalogProduct, getPriceStatus } from '@/data/mockData';
+import { hrefCompare } from '@/utils/hrefs';
 
 export function WishlistScreen() {
   const router = useRouter();
@@ -28,27 +29,40 @@ export function WishlistScreen() {
 
   return (
     <View style={styles.page}>
-      <Header title="Wishlist" />
       <FlatList
         data={products}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.sub}>Saved items open the compare view first — stay in control before visiting a store.</Text>
-            <Pressable onPress={() => router.push('/search')} style={styles.linkBtn}>
-              <Text style={styles.linkText}>Find more to save</Text>
-            </Pressable>
+            <Text style={styles.title}>Wishlist</Text>
+            <Text style={styles.sub}>Your premium save list with instant visibility into price movement.</Text>
+            <SectionHeader title="Saved products" subtitle={`${products.length} items`} />
           </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Nothing saved yet</Text>
-            <Text style={styles.emptySub}>Tap the heart on any compare screen to add it here.</Text>
+            <Text style={styles.emptyIcon}>♡</Text>
+            <Text style={styles.emptyTitle}>Your wishlist is waiting</Text>
+            <Text style={styles.emptySub}>Save any product to watch drops and compare smarter.</Text>
+            <Pressable onPress={() => router.push('/search')} style={styles.linkBtn}>
+              <Text style={styles.linkText}>Explore products</Text>
+            </Pressable>
           </View>
         }
-        renderItem={({ item }) => <ProductCard product={item} mode="tracked" />}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 12, marginBottom: 12 }}
+        renderItem={({ item }) => (
+          <Pressable style={{ flex: 1 }} onPress={() => router.push(hrefCompare(item.id))}>
+            <WishlistCard
+              title={item.title}
+              image={item.image}
+              price={item.price}
+              status={getPriceStatus(item.price)}
+            />
+          </Pressable>
+        )}
+        ListFooterComponent={<View style={{ height: 84 }} />}
       />
     </View>
   );
@@ -58,44 +72,63 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: 'center',
   },
   content: {
     width: '100%',
-    maxWidth: 520,
-    padding: theme.spacing.lg,
-    paddingBottom: 120,
+    maxWidth: theme.layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    paddingBottom: 110,
     flexGrow: 1,
   },
   header: {
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    gap: 10,
+    marginBottom: 18,
+  },
+  title: {
+    color: theme.colors.text,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.7,
   },
   sub: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
+    color: theme.colors.subtext,
+    fontSize: 14,
+    lineHeight: 20,
   },
   linkBtn: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   linkText: {
-    ...theme.typography.caption,
-    color: theme.colors.primaryMid,
-    fontWeight: '800',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   empty: {
-    padding: theme.spacing.xxl,
+    padding: 24,
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...theme.shadow.soft,
+  },
+  emptyIcon: {
+    fontSize: 46,
+    color: theme.colors.primary,
   },
   emptyTitle: {
-    ...theme.typography.title,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
+    fontSize: 22,
+    fontWeight: '800',
   },
   emptySub: {
-    ...theme.typography.caption,
-    color: theme.colors.textMuted,
+    color: theme.colors.subtext,
+    fontSize: 14,
     textAlign: 'center',
   },
 });

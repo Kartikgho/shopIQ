@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Switch, Text, View } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 
 import { Header } from '@/components/Header';
@@ -8,11 +8,13 @@ import { StatsCard } from '@/components/StatsCard';
 import { CustomButton } from '@/components/CustomButton';
 import { usePushAlerts } from '@/context/PushAlertsContext';
 import { theme } from '@/constants/theme';
-import { hrefPremiumSavings, hrefSaved, hrefSignIn, hrefSignUp } from '@/utils/hrefs';
+import { hrefSaved, hrefSavings, hrefSignIn, hrefSignUp } from '@/utils/hrefs';
+import { SectionHeader } from '@/components/premium/SectionHeader';
+import { PremiumSavingsListItem } from '@/components/premium/PremiumSavingsListItem';
 
 const settings = [
-  { id: 'terms', icon: 'file-text' as const, label: 'Terms & Conditions' },
-  { id: 'privacy', icon: 'shield' as const, label: 'Privacy Policy' },
+  { id: 'terms', icon: 'file-text' as const, label: 'Terms & Conditions', href: '/legal/terms' as const },
+  { id: 'privacy', icon: 'shield' as const, label: 'Privacy Policy', href: '/legal/privacy' as const },
 ];
 
 export function ProfileScreen() {
@@ -25,13 +27,13 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.page}>
-      <Header title="Profile" />
       <FlatList
         data={settings}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
+            <Text style={styles.pageTitle}>Profile</Text>
             {isLoaded && user ? (
       <View style={styles.userCard}>
         <View style={styles.avatarCircle}>
@@ -46,8 +48,8 @@ export function ProfileScreen() {
               <GuestCard />
             )}
             <View style={styles.statsRow}>
-              <StatsCard title="Tracked deals" value="Live" icon="🔔" />
-              <StatsCard title="Savings tips" value="Pro" icon="✨" />
+              <StatsCard title="Orders" value="28" icon="📦" />
+              <StatsCard title="Savings" value="Rs 16.4k" icon="💰" />
             </View>
             {!user ? (
               <View style={styles.authRow}>
@@ -59,25 +61,19 @@ export function ProfileScreen() {
                 />
               </View>
             ) : null}
-            <Text style={styles.section}>Preferences</Text>
+            <SectionHeader title="Settings" subtitle="Account and app preferences" />
           </>
         }
         renderItem={({ item }) => (
           <View style={styles.listWrap}>
-            <ListItem icon={item.icon} label={item.label} />
+            <ListItem icon={item.icon} label={item.label} onPress={() => router.push(item.href)} />
           </View>
         )}
         ListFooterComponent={
           <View style={styles.footerCol}>
+            <PremiumSavingsListItem onPress={() => router.push(hrefSavings)} />
             <View style={styles.listWrap}>
               <ListItem icon="heart" label="Wishlist" onPress={() => router.push(hrefSaved)} />
-            </View>
-            <View style={styles.listWrap}>
-              <ListItem
-                icon="trending-up"
-                label="Premium savings"
-                onPress={() => router.push(hrefPremiumSavings)}
-              />
             </View>
             {user ? (
               <View style={styles.listWrap}>
@@ -100,7 +96,7 @@ export function ProfileScreen() {
               />
             </View>
             <View style={styles.rateRow}>
-              <Text style={styles.rateText}>Enjoying the app?</Text>
+              <Text style={styles.rateText}>Enjoying ShopIQ?</Text>
               <Text style={styles.stars}>★★★★★</Text>
             </View>
             <Text style={styles.notice}>
@@ -131,21 +127,28 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: 'center',
   },
   content: {
     width: '100%',
-    maxWidth: 520,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
-    paddingBottom: 120,
+    maxWidth: theme.layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    gap: 12,
+    paddingBottom: 110,
+  },
+  pageTitle: {
+    color: theme.colors.text,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+    marginBottom: 12,
   },
   userCard: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    padding: theme.spacing.lg,
+    borderColor: theme.colors.border,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarMuted: {
-    backgroundColor: theme.colors.surfaceMuted,
+    backgroundColor: '#EEF2FF',
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -170,60 +173,54 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   avatarLetterMuted: {
-    color: theme.colors.textMuted,
+    color: theme.colors.subtext,
     fontSize: 22,
     fontWeight: '800',
   },
   name: {
     fontSize: 20,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
   },
   email: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: theme.colors.subtext,
     marginTop: 4,
   },
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: theme.spacing.md,
+    marginTop: 14,
   },
   authRow: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
   },
-  section: {
-    marginTop: theme.spacing.lg,
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-  },
   listWrap: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
     overflow: 'hidden',
   },
   footerCol: {
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.sm,
+    marginTop: 16,
+    gap: 12,
   },
   rateRow: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    padding: theme.spacing.md,
+    borderColor: theme.colors.border,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
   },
   rateText: {
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
     fontSize: 16,
   },
   stars: {
@@ -232,7 +229,7 @@ const styles = StyleSheet.create({
   },
   notice: {
     ...theme.typography.micro,
-    color: theme.colors.textMuted,
+    color: theme.colors.subtext,
     lineHeight: 18,
     marginTop: 4,
   },

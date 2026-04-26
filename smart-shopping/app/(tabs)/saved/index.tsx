@@ -1,5 +1,5 @@
-import { WishlistScreen } from '@/screens/WishlistScreen';
+import { SavedScreen } from '@/screens/SavedScreen';
 
 export default function SavedPage() {
-  return <WishlistScreen />;
+  return <SavedScreen />;
 }

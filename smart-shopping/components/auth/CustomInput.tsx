@@ -1,15 +1,18 @@
 import { Feather } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
+import { forwardRef, useCallback, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
+  ViewStyle,
   View,
 } from 'react-native';
 import Animated, {
+  interpolate,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
@@ -24,9 +27,11 @@ export type InputIconName = 'mail' | 'lock' | 'user';
 
 export type CustomInputProps = TextInputProps & {
   label: string;
-  icon: InputIconName;
+  icon?: InputIconName;
   errorMessage?: string;
   showPasswordToggle?: boolean;
+  success?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 const ICON_MAP = {
@@ -35,23 +40,29 @@ const ICON_MAP = {
   user: 'user' as const,
 };
 
-export function CustomInput({
-  label,
-  icon,
-  value,
-  onChangeText,
-  errorMessage,
-  secureTextEntry,
-  showPasswordToggle = true,
-  editable = true,
-  onFocus: onFocusProp,
-  onBlur: onBlurProp,
-  style: inputStyle,
-  ...rest
-}: CustomInputProps) {
+export const CustomInput = forwardRef<TextInput, CustomInputProps>(function CustomInput(
+  {
+    label,
+    icon,
+    value,
+    onChangeText,
+    errorMessage,
+    secureTextEntry,
+    showPasswordToggle = true,
+    editable = true,
+    onFocus: onFocusProp,
+    onBlur: onBlurProp,
+    style: inputStyle,
+    success = false,
+    containerStyle,
+    ...rest
+  },
+  ref,
+) {
   const [hidden, setHidden] = useState(true);
   const [focused, setFocused] = useState(false);
   const focusProgress = useSharedValue(0);
+  const hasValue = useMemo(() => String(value ?? '').length > 0, [value]);
 
   const onFocus = useCallback<NonNullable<TextInputProps['onFocus']>>(
     (e) => {
@@ -73,36 +84,55 @@ export function CustomInput({
 
   const showToggle = Boolean(secureTextEntry && showPasswordToggle);
   const effectiveSecure = secureTextEntry && showToggle && hidden;
+  const activeIcon = icon ? ICON_MAP[icon] : null;
 
   const shellStyle = useAnimatedStyle(() => {
-    const border = errorMessage
+    const ringColor = errorMessage
       ? PREMIUM.error
-      : interpolateColor(
-        focusProgress.value,
-        [0, 1],
-        [PREMIUM.border, PREMIUM.borderFocus],
-      );
+      : success
+        ? PREMIUM.success
+        : interpolateColor(focusProgress.value, [0, 1], ['transparent', PREMIUM.borderFocus]);
     return {
-      borderColor: border,
-      shadowOpacity: errorMessage ? 0.06 : 0.08 + focusProgress.value * 0.14,
-      shadowRadius: 6 + focusProgress.value * 10,
+      transform: [{ scale: 1 + focusProgress.value * 0.004 }],
+      shadowColor: PREMIUM.glow,
+      shadowOpacity: focused ? 0.16 : 0.02,
+      shadowRadius: 8 + focusProgress.value * 10,
+      borderColor: ringColor,
+      borderWidth: focused || Boolean(errorMessage) || success ? 1.5 : 1,
     };
-  }, [errorMessage]);
+  }, [errorMessage, focused, success]);
+
+  const floatLabelStyle = useAnimatedStyle(() => {
+    const lifted = hasValue ? 1 : 0;
+    const t = Math.max(focusProgress.value, lifted);
+    return {
+      transform: [
+        { translateY: interpolate(t, [0, 1], [0, -14]) },
+        { scale: interpolate(t, [0, 1], [1, 0.9]) },
+      ],
+      color: errorMessage
+        ? PREMIUM.error
+        : interpolateColor(t, [0, 1], [PREMIUM.subtext, PREMIUM.text]),
+    };
+  }, [errorMessage, hasValue]);
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.wrap, containerStyle]}>
       <AnimatedView
         style={[
           styles.fieldShell,
           shellStyle,
-          Platform.OS === 'android' && { elevation: focused ? 4 : 2 },
+          Platform.OS === 'android' && styles.fieldShellAndroid,
         ]}>
-        <View style={styles.iconWrap}>
-          <Feather name={ICON_MAP[icon]} size={18} color={PREMIUM.subtext} />
-        </View>
+        <Animated.Text style={[styles.floatLabel, floatLabelStyle]}>{label}</Animated.Text>
+        {activeIcon ? (
+          <View style={styles.iconWrap}>
+            <Feather name={activeIcon} size={16} color={PREMIUM.subtext} />
+          </View>
+        ) : null}
         <TextInput
           {...rest}
+          ref={ref}
           value={value}
           onChangeText={onChangeText}
           editable={editable}
@@ -123,51 +153,63 @@ export function CustomInput({
             <Feather name={hidden ? 'eye-off' : 'eye'} size={20} color={PREMIUM.subtext} />
           </Pressable>
         ) : (
-          <View style={styles.eyeSpacer} />
+          <View style={activeIcon ? styles.eyeSpacer : styles.eyeSpacerCompact} />
         )}
       </AnimatedView>
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {
     marginBottom: 18,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: PREMIUM.text,
-    marginBottom: 8,
-    letterSpacing: 0.2,
-  },
   fieldShell: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 52,
-    borderRadius: 15,
-    borderWidth: 1.5,
-    backgroundColor: PREMIUM.inputBg,
-    paddingHorizontal: 4,
-    shadowColor: PREMIUM.borderFocus,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: PREMIUM.field,
+    paddingHorizontal: 14,
+    shadowColor: PREMIUM.glow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+  },
+  fieldShellAndroid: {
+    elevation: 0,
+  },
+  floatLabel: {
+    position: 'absolute',
+    left: 44,
+    top: 15,
+    fontSize: 14,
+    fontWeight: '500',
+    zIndex: 2,
   },
   iconWrap: {
-    width: 44,
+    width: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
     color: PREMIUM.text,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+    paddingTop: 20,
     paddingRight: 8,
-    ...(Platform.OS === 'web' ? { outlineWidth: 0 } : null),
+    marginLeft: 8,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : null),
   },
   eye: {
     paddingHorizontal: 12,
@@ -176,9 +218,12 @@ const styles = StyleSheet.create({
   eyeSpacer: {
     width: 12,
   },
+  eyeSpacerCompact: {
+    width: 4,
+  },
   error: {
-    marginTop: 6,
-    fontSize: 13,
+    marginTop: 8,
+    fontSize: 12,
     fontWeight: '500',
     color: PREMIUM.error,
     lineHeight: 18,

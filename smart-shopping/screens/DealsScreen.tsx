@@ -1,14 +1,21 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
-import { Header } from '@/components/Header';
-import { ProductCard } from '@/components/ProductCard';
+import { DealCard } from '@/components/premium/DealCard';
+import { SectionHeader } from '@/components/premium/SectionHeader';
 import { dealsProducts } from '@/data/mockData';
 import { useDealReactions } from '@/hooks/useDealReactions';
 import { theme } from '@/constants/theme';
 import type { DealReaction } from '@/types';
+import { useRouter } from 'expo-router';
+import { hrefCompare } from '@/utils/hrefs';
+import { fetchDealsCards } from '@/services/catalogApi';
+import type { Product } from '@/types';
 
 export function DealsScreen() {
+  const router = useRouter();
   const { getReaction, setReaction } = useDealReactions();
+  const [items, setItems] = useState<Product[]>(dealsProducts);
 
   const onToggleReaction = (dealId: string, r: DealReaction) => {
     const current = getReaction(dealId);
@@ -16,29 +23,45 @@ export function DealsScreen() {
     else setReaction(dealId, r);
   };
 
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const remote = await fetchDealsCards();
+        if (remote.length > 0) setItems(remote);
+      } catch {
+        setItems(dealsProducts);
+      }
+    };
+    void load();
+  }, []);
+
   return (
     <View style={styles.page}>
-      <Header />
       <FlatList
-        data={dealsProducts}
+        data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
         ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.kicker}>Curated for you</Text>
-            <Text style={styles.title}>Today&apos;s standout deals</Text>
-            <Text style={styles.sub}>Share with friends or react — we&apos;ll tune alerts from your taste.</Text>
+            <Text style={styles.title}>Premium Deals</Text>
+            <Text style={styles.sub}>High-value offers with live discount tags and quick compare actions.</Text>
+            <SectionHeader title="Popular deals" subtitle="Best picks across top stores" />
           </View>
         }
         renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            mode="deal"
-            reaction={getReaction(item.id)}
-            onToggleReaction={(r) => onToggleReaction(item.id, r)}
+          <DealCard
+            title={item.title}
+            image={item.image}
+            price={item.price}
+            oldPrice={item.oldPrice}
+            discount={item.discount}
+            platform={item.platform ?? 'Top store'}
+            onPress={() => router.push(hrefCompare(item.id))}
+            onSave={() => onToggleReaction(item.id, 'like')}
           />
         )}
+        ListFooterComponent={<View style={{ height: 84 }} />}
       />
     </View>
   );
@@ -48,32 +71,27 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: 'center',
   },
   content: {
     width: '100%',
-    maxWidth: 520,
-    padding: theme.spacing.lg,
-    paddingBottom: 120,
+    maxWidth: theme.layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
+    paddingBottom: 110,
   },
   headerBlock: {
-    marginBottom: theme.spacing.lg,
-    gap: 6,
-  },
-  kicker: {
-    ...theme.typography.micro,
-    color: theme.colors.primaryMid,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    marginBottom: 16,
+    gap: 10,
   },
   title: {
-    ...theme.typography.hero,
-    fontSize: 22,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.7,
   },
   sub: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
+    color: theme.colors.subtext,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

@@ -2,6 +2,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Header } from '@/components/Header';
@@ -10,10 +11,12 @@ import { ShareIconButton } from '@/components/ShareIconButton';
 import { getCatalogProduct, getSimilarProducts, lowestPrice } from '@/data/mockData';
 import { useWishlist } from '@/context/WishlistContext';
 import { theme } from '@/constants/theme';
+import { fetchProductForCompare } from '@/services/catalogApi';
 import { formatINR } from '@/utils/price';
 import { hrefCompare } from '@/utils/hrefs';
 import { shareDealLink } from '@/utils/share';
 import { withAffiliateParams } from '@/utils/affiliate';
+import type { CatalogProduct } from '@/types';
 
 export function CompareScreen() {
   const { id: paramId } = useLocalSearchParams<{ id: string | string[] }>();
@@ -21,7 +24,36 @@ export function CompareScreen() {
   const { isSaved, toggle } = useWishlist();
 
   const id = Array.isArray(paramId) ? paramId[0] : paramId;
-  const product = id ? getCatalogProduct(id) : undefined;
+  const localProduct = id ? getCatalogProduct(id) : undefined;
+  const [apiProduct, setApiProduct] = useState<CatalogProduct | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id || localProduct) return;
+      setIsLoading(true);
+      try {
+        const remote = await fetchProductForCompare(id);
+        setApiProduct(remote);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void load();
+  }, [id, localProduct]);
+
+  const product = localProduct ?? apiProduct ?? undefined;
+
+  if (!product && isLoading) {
+    return (
+      <View style={styles.page}>
+        <Header title="Compare" showBack />
+        <View style={styles.empty}>
+          <Text style={styles.emptyTitle}>Loading product...</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (!product) {
     return (
@@ -140,23 +172,25 @@ export function CompareScreen() {
         })}
 
         <Text style={styles.sectionLabel}>Similar picks</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.similarList}>
-          {getSimilarProducts(product).map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => router.push(hrefCompare(item.id))}
-              style={({ pressed }) => [styles.similarCard, pressed && { opacity: 0.92 }]}>
-              <Text style={styles.similarEmoji}>{item.image}</Text>
-              <Text style={styles.similarTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={styles.similarFrom}>from {formatINR(lowestPrice(item).price)}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {localProduct ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.similarList}>
+            {getSimilarProducts(localProduct).map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => router.push(hrefCompare(item.id))}
+                style={({ pressed }) => [styles.similarCard, pressed && { opacity: 0.92 }]}>
+                <Text style={styles.similarEmoji}>{item.image}</Text>
+                <Text style={styles.similarTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <Text style={styles.similarFrom}>from {formatINR(lowestPrice(item).price)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
       </ScrollView>
     </View>
   );

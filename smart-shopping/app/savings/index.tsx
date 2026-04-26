@@ -1,5 +1,5 @@
 import { SavingsScreen } from '@/screens/SavingsScreen';
 
-export default function PremiumSavingsPage() {
+export default function SavingsPage() {
   return <SavingsScreen />;
 }

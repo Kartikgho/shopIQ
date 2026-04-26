@@ -1,7 +1,9 @@
+import * as Haptics from 'expo-haptics';
 import { useSignUp } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { AuthCard } from '@/components/auth/AuthCard';
 import { CustomInput } from '@/components/auth/CustomInput';
@@ -22,7 +24,7 @@ function isValidEmail(s: string) {
 
 const STRENGTH_LABEL: Record<PasswordStrength, string> = {
   weak: 'Weak',
-  medium: 'Good',
+  medium: 'Medium',
   strong: 'Strong',
 };
 
@@ -32,37 +34,29 @@ const STRENGTH_COLOR: Record<PasswordStrength, string> = {
   strong: '#059669',
 };
 
-function StrengthMeter({ strength }: { strength: PasswordStrength }) {
-  const n = strength === 'weak' ? 1 : strength === 'medium' ? 2 : 3;
+function BrandHeader() {
   return (
-    <View style={styles.meterRow}>
-      <View style={styles.meterBars}>
-        {[0, 1, 2].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.meterBar,
-              i < n && { backgroundColor: STRENGTH_COLOR[strength] },
-            ]}
-          />
-        ))}
-      </View>
-      <Text style={[styles.meterLabel, { color: STRENGTH_COLOR[strength] }]}>
-        {STRENGTH_LABEL[strength]}
-      </Text>
+    <View style={styles.header}>
+      <Text style={styles.title}>Welcome to IQ</Text>
+      <Text style={styles.subtitle}>Smarter shopping starts here.</Text>
     </View>
   );
 }
 
-function BrandHeader({ kicker }: { kicker?: string }) {
+function StrengthMeter({ strength }: { strength: PasswordStrength }) {
+  const filled = strength === 'weak' ? 1 : strength === 'medium' ? 2 : 3;
+  const barStyle = useAnimatedStyle(() => ({
+    width: withTiming(`${(filled / 3) * 100}%`, { duration: 220 }),
+    backgroundColor: withTiming(STRENGTH_COLOR[strength], { duration: 220 }),
+  }));
   return (
-    <View style={styles.header}>
-      {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
-      <Text style={styles.brand}>
-        Shop<Text style={styles.brandAccent}>IQ</Text>
+    <View style={styles.strengthWrap}>
+      <View style={styles.track}>
+        <Animated.View style={[styles.fill, barStyle]} />
+      </View>
+      <Text style={[styles.strengthLabel, { color: STRENGTH_COLOR[strength] }]}>
+        {STRENGTH_LABEL[strength]}
       </Text>
-      <Text style={styles.headline}>Welcome to IQ</Text>
-      <Text style={styles.subtitle}>Smarter shopping starts here.</Text>
     </View>
   );
 }
@@ -70,6 +64,9 @@ function BrandHeader({ kicker }: { kicker?: string }) {
 export function SignUp() {
   const router = useRouter();
   const { isLoaded, signUp, setActive } = useSignUp();
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
 
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
@@ -81,37 +78,34 @@ export function SignUp() {
   const [passwordFieldError, setPasswordFieldError] = useState('');
   const [confirmFieldError, setConfirmFieldError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [ctaHover, setCtaHover] = useState(false);
 
   const strength = useMemo(() => getPasswordStrength(password), [password]);
-
-  const onPasswordChange = (text: string) => {
-    setPassword(text);
-    setPasswordFieldError('');
-    if (error) setError('');
-  };
-
-  const onConfirmChange = (text: string) => {
-    setConfirmPassword(text);
-    setConfirmFieldError('');
-    if (error) setError('');
-  };
-
   const authBusy = submitting || !isLoaded;
-
   const canSubmit =
     firstName.trim().length > 0 &&
     isValidEmail(email) &&
     password.length > 0 &&
     confirmPassword.length > 0;
+  const nameError = nameTouched && firstName.trim().length < 2 ? 'Add at least 2 characters for your name.' : '';
+  const emailError =
+    emailTouched && email.length > 0 && !isValidEmail(email)
+      ? 'That email looks off. Try the format name@email.com.'
+      : '';
+  const passwordSuccess = password.length > 0 && strength === 'strong' && !passwordFieldError;
 
   const submit = async () => {
-    if (!isLoaded || !signUp || submitting || !canSubmit) return;
+    if (!isLoaded || !signUp || submitting) return;
+    setNameTouched(true);
+    setEmailTouched(true);
     setError('');
     setPasswordFieldError('');
     setConfirmFieldError('');
-
+    if (!canSubmit || firstName.trim().length < 2) return;
     if (password !== confirmPassword) {
-      setConfirmFieldError('Passwords do not match.');
+      setConfirmFieldError("Those passwords don't match yet.");
       return;
     }
 
@@ -124,6 +118,7 @@ export function SignUp() {
       });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setPendingVerification(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (e: unknown) {
       if (isClerkBreachedPasswordError(e)) {
         setPasswordFieldError(BREACHED_PASSWORD_USER_MESSAGE);
@@ -131,10 +126,11 @@ export function SignUp() {
         setError(
           normalizeClerkAuthError(
             e,
-            'We could not create your account. This email may already be in use — try signing in.',
+            "We couldn't create your account right now. Try again in a moment.",
           ),
         );
       }
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setSubmitting(false);
     }
@@ -147,42 +143,29 @@ export function SignUp() {
     try {
       const attempt = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (attempt.status === 'complete' && attempt.createdSessionId && setActive) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         await setActive({ session: attempt.createdSessionId });
         router.replace(hrefHome);
       } else {
-        setError('Verification did not finish. Request a new code from your email if needed.');
+        setError('This code looks invalid or expired. Request a fresh one and try again.');
       }
     } catch (e: unknown) {
-      setError(
-        normalizeClerkAuthError(
-          e,
-          'That code is invalid or expired. Check your inbox and try again.',
-        ),
-      );
+      setError(normalizeClerkAuthError(e, "We couldn't verify that code. Please try again."));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const nameErr = error && error.toLowerCase().includes('name') ? error : undefined;
-  const emailErr =
-    error &&
-      (error.toLowerCase().includes('email') || error.toLowerCase().includes('account')) &&
-      !nameErr
-      ? error
-      : undefined;
-  const formErr = error && !nameErr && !emailErr ? error : undefined;
-
   if (pendingVerification) {
     return (
       <PremiumAuthLayout>
         <AuthCard>
-          <BrandHeader kicker="Almost there" />
-          <Text style={styles.flowTitle}>Verify your email</Text>
-          <Text style={styles.flowSub}>Enter the 6-digit code we sent you.</Text>
+          <BrandHeader />
+          <Text style={styles.sectionTitle}>Verify your email</Text>
           <CustomInput
-            label="Verification code"
-            icon="mail"
+            label="6-digit code"
+          icon="mail"
             value={code}
             onChangeText={(t) => {
               setCode(t);
@@ -192,8 +175,11 @@ export function SignUp() {
             autoCapitalize="none"
             textContentType="oneTimeCode"
             maxLength={6}
-            errorMessage={error || undefined}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={() => void verify()}
             showPasswordToggle={false}
+            errorMessage={error || undefined}
           />
           <GradientButton
             title="Continue"
@@ -201,10 +187,8 @@ export function SignUp() {
             loading={authBusy}
             disabled={code.trim().length < 6}
           />
-          <Pressable onPress={() => setPendingVerification(false)} style={styles.footer}>
-            <Text style={styles.footerText}>
-              Wrong email? <Text style={styles.footerLink}>Start over</Text>
-            </Text>
+          <Pressable onPress={() => router.push(hrefSignIn)} style={styles.secondaryRow}>
+            <Text style={styles.secondaryText}>Back to sign in</Text>
           </Pressable>
         </AuthCard>
       </PremiumAuthLayout>
@@ -215,8 +199,6 @@ export function SignUp() {
     <PremiumAuthLayout>
       <AuthCard>
         <BrandHeader />
-        <Text style={styles.formTitle}>Sign up</Text>
-        <Text style={styles.formSub}>Create your account</Text>
         <CustomInput
           label="Name"
           icon="user"
@@ -227,10 +209,15 @@ export function SignUp() {
             if (error) setError('');
           }}
           autoCapitalize="words"
-          errorMessage={nameErr}
+          autoFocus
+          returnKeyType="next"
+          onBlur={() => setNameTouched(true)}
+          onSubmitEditing={() => emailRef.current?.focus()}
+          errorMessage={nameError}
           showPasswordToggle={false}
         />
         <CustomInput
+          ref={emailRef}
           label="Email"
           icon="mail"
           placeholder='johndoe@gmail.com'
@@ -243,42 +230,64 @@ export function SignUp() {
           autoCapitalize="none"
           autoComplete="email"
           textContentType="emailAddress"
-          errorMessage={emailErr}
+          returnKeyType="next"
+          onBlur={() => setEmailTouched(true)}
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          errorMessage={emailError}
           showPasswordToggle={false}
         />
         <CustomInput
+          ref={passwordRef}
           label="Password"
           icon="lock"
           value={password}
-          onChangeText={onPasswordChange}
+          onChangeText={(t) => {
+            setPassword(t);
+            setPasswordFieldError('');
+            if (error) setError('');
+          }}
           secureTextEntry
           autoCapitalize="none"
           placeholder='********'
           textContentType="newPassword"
+          returnKeyType="next"
+          onSubmitEditing={() => confirmRef.current?.focus()}
           errorMessage={passwordFieldError || undefined}
+          success={passwordSuccess}
         />
         {password.length > 0 ? <StrengthMeter strength={strength} /> : null}
         <CustomInput
+          ref={confirmRef}
           label="Confirm password"
           icon="lock"
           value={confirmPassword}
-          onChangeText={onConfirmChange}
+          onChangeText={(t) => {
+            setConfirmPassword(t);
+            setConfirmFieldError('');
+            if (error) setError('');
+          }}
           secureTextEntry
           autoCapitalize="none"
           placeholder='********'
           textContentType="newPassword"
+          returnKeyType="done"
+          onSubmitEditing={() => void submit()}
           errorMessage={confirmFieldError || undefined}
         />
-        {formErr ? <Text style={styles.banner}>{formErr}</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <GradientButton
-          title="Sign up"
+          title="Create account"
           onPress={() => void submit()}
           loading={authBusy}
           disabled={!canSubmit}
         />
-        <Pressable onPress={() => router.push(hrefSignIn)} style={styles.footer}>
-          <Text style={styles.footerText}>
-            Already have an account? <Text style={styles.footerLink}>Sign In</Text>
+        <Pressable
+          onPress={() => router.push(hrefSignIn)}
+          onHoverIn={() => setCtaHover(true)}
+          onHoverOut={() => setCtaHover(false)}
+          style={styles.secondaryRow}>
+          <Text style={styles.secondaryText}>
+            Already have an account? <Text style={[styles.secondaryLink, ctaHover && styles.hoverLink]}>Sign in</Text>
           </Text>
         </Pressable>
       </AuthCard>
@@ -288,115 +297,74 @@ export function SignUp() {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 18,
+    marginBottom: 26,
     alignItems: 'center',
+    gap: 8,
   },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: PREMIUM.accent,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  brand: {
-    fontSize: 26,
+  title: {
+    fontSize: 30,
     fontWeight: '800',
     color: PREMIUM.text,
-    letterSpacing: -0.5,
-    marginBottom: 14,
-  },
-  brandAccent: {
-    color: PREMIUM.gradientMid,
-  },
-  headline: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: PREMIUM.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.8,
     textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 15,
-    fontWeight: '400',
+    fontSize: 16,
     color: PREMIUM.subtext,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: 300,
   },
-  formTitle: {
-    fontSize: 20,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: PREMIUM.text,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  formSub: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: PREMIUM.subtext,
     marginBottom: 16,
     textAlign: 'center',
   },
-  flowTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: PREMIUM.text,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  flowSub: {
-    fontSize: 14,
-    color: PREMIUM.subtext,
-    lineHeight: 20,
+  strengthWrap: {
+    marginTop: -6,
     marginBottom: 12,
-    textAlign: 'center',
+    gap: 8,
   },
-  meterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: -8,
-    marginBottom: 14,
-  },
-  meterBars: {
-    flexDirection: 'row',
-    flex: 1,
-    gap: 6,
-    marginRight: 12,
-  },
-  meterBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
+  track: {
+    height: 6,
+    borderRadius: 999,
     backgroundColor: PREMIUM.border,
+    overflow: 'hidden',
   },
-  meterLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+    width: '0%',
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  banner: {
+  errorText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: PREMIUM.error,
     lineHeight: 20,
-    marginBottom: 10,
+    color: PREMIUM.error,
+    marginBottom: 8,
+    fontWeight: '500',
   },
-  footer: {
-    marginTop: 22,
+  secondaryRow: {
+    marginTop: 20,
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
-  footerText: {
+  secondaryText: {
     fontSize: 15,
     color: PREMIUM.subtext,
-    fontWeight: '400',
+    fontWeight: '500',
   },
-  footerLink: {
-    color: PREMIUM.borderFocus,
+  secondaryLink: {
+    color: PREMIUM.primary,
     fontWeight: '700',
+  },
+  hoverLink: {
+    opacity: 0.8,
   },
 });

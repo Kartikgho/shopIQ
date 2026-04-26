@@ -280,3 +280,60 @@ export const recentSavings: RecentSaving[] = [
     emoji: '🥤',
   },
 ];
+
+export const homeBanners = [
+  {
+    id: 'banner-1',
+    title: 'Mega Smart Sale',
+    subtitle: 'Up to 40% off electronics with stacked bank offers',
+    cta: 'Explore deals',
+    colors: ['#3B82F6', '#6366F1'] as [string, string],
+  },
+  {
+    id: 'banner-2',
+    title: 'Weekend Premium Picks',
+    subtitle: 'Curated products with reliable ratings and fast delivery',
+    cta: 'View picks',
+    colors: ['#6366F1', '#3B82F6'] as [string, string],
+  },
+  {
+    id: 'banner-3',
+    title: 'Smart Savings Mode',
+    subtitle: 'Enable tracking and get instant price-drop alerts',
+    cta: 'Track now',
+    colors: ['#0EA5E9', '#3B82F6'] as [string, string],
+  },
+];
+
+export const categories = [
+  { id: 'all', label: 'All' },
+  { id: 'mobiles', label: 'Mobiles' },
+  { id: 'audio', label: 'Audio' },
+  { id: 'wearables', label: 'Wearables' },
+  { id: 'appliances', label: 'Appliances' },
+  { id: 'tv', label: 'TV & Home' },
+];
+
+export const trendingSearches = ['iPhone 13', 'Sony XM4', 'Smart TV 4K', 'Boat Airdopes', 'OnePlus'];
+
+export const savingsBreakdown = [
+  { id: 'bank', label: 'Bank Offers', amount: 7200 },
+  { id: 'coupon', label: 'Coupons', amount: 4100 },
+  { id: 'drop', label: 'Price Drops', amount: 5150 },
+];
+
+export function simulatePriceHistory(basePrice: number) {
+  const p1 = Math.round(basePrice * 1.12);
+  const p2 = Math.round(basePrice * 1.06);
+  const p3 = Math.round(basePrice * 1.04);
+  const p4 = basePrice;
+  return [p1, p2, p3, p4];
+}
+
+export function getPriceStatus(basePrice: number) {
+  const history = simulatePriceHistory(basePrice);
+  const previous = history[history.length - 2];
+  if (basePrice < previous) return 'price dropped';
+  if (basePrice > previous) return 'price increased';
+  return 'stable';
+}

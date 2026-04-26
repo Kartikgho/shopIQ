@@ -1,78 +1,56 @@
-import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
-import { LinearGradient } from 'expo-linear-gradient';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
-import { Header } from '@/components/Header';
-import { recentSavings, savingsMonthly } from '@/data/mockData';
+import { SectionHeader } from '@/components/premium/SectionHeader';
 import { theme } from '@/constants/theme';
-
-const screenWidth = Dimensions.get('window').width;
+import { recentSavings, savingsBreakdown, savingsMonthly } from '@/data/mockData';
 
 export function SavingsScreen() {
+  const peak = Math.max(...savingsMonthly, 1);
   return (
     <View style={styles.page}>
-      <Header title="Premium Savings" showBack />
       <FlatList
         data={recentSavings}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          <>
-            <View style={styles.proBanner}>
-              <LinearGradient
-                colors={[theme.colors.accent, '#a67c1f']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.proPill}>
-                <Text style={styles.proPillText}>PRO</Text>
-              </LinearGradient>
-              <Text style={styles.proCaption}>Member savings intelligence</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>Savings</Text>
+            <Text style={styles.sub}>Track your total money saved through price intelligence.</Text>
+            <View style={styles.totalCard}>
+              <Text style={styles.totalLabel}>Total Saved</Text>
+              <Text style={styles.totalValue}>Rs 16,450</Text>
+              <Text style={styles.totalHint}>+12% vs last month</Text>
             </View>
-            <View style={styles.savingsRow}>
-              <LinearGradient
-                colors={['#152a45', theme.colors.primaryMid]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.valueCard, styles.cardFrame]}>
-                <Text style={styles.valueLabel}>Total savings</Text>
-                <Text style={styles.valueText}>₹16,450</Text>
-              </LinearGradient>
-              <LinearGradient
-                colors={['#5c1a1a', theme.colors.danger]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.valueCard, styles.cardFrame]}>
-                <Text style={styles.valueLabel}>Coupon savings</Text>
-                <Text style={styles.valueText}>₹1,200 off</Text>
-              </LinearGradient>
-            </View>
+            <SectionHeader title="Monthly graph" subtitle="Last 4 months" />
             <View style={styles.chartWrap}>
-              <Text style={styles.sectionTitle}>Savings overview</Text>
-              <Text style={styles.sectionHint}>Rolling 4-month trend (mock)</Text>
-              <BarChart
-                data={{
-                  labels: ['Jan', 'Feb', 'Mar', 'Apr'],
-                  datasets: [{ data: savingsMonthly }],
-                }}
-                width={Math.min(screenWidth - 44, 420)}
-                height={200}
-                fromZero
-                yAxisLabel="₹"
-                yAxisSuffix=""
-                chartConfig={{
-                  backgroundGradientFrom: theme.colors.backgroundElevated,
-                  backgroundGradientTo: theme.colors.backgroundElevated,
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(201, 162, 39, ${opacity})`,
-                  labelColor: () => theme.colors.textSecondary,
-                  propsForBackgroundLines: { strokeDasharray: '' },
-                  barPercentage: 0.5,
-                }}
-                style={styles.chart}
+              <FlatList
+                horizontal
+                data={savingsMonthly}
+                keyExtractor={(_, i) => `m-${i}`}
+                contentContainerStyle={styles.chartRow}
+                renderItem={({ item, index }) => (
+                  <View style={styles.barCol}>
+                    <View style={[styles.bar, { height: Math.max(24, (item / peak) * 130) }]} />
+                    <Text style={styles.barLabel}>{['Jan', 'Feb', 'Mar', 'Apr'][index]}</Text>
+                  </View>
+                )}
               />
             </View>
-            <Text style={styles.listSectionTitle}>Recent wins</Text>
-          </>
+            <SectionHeader title="Savings breakdown" />
+            <View style={styles.breakdownWrap}>
+              <FlatList
+                data={savingsBreakdown}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <View style={styles.breakdownItem}>
+                    <Text style={styles.breakdownLabel}>{item.label}</Text>
+                    <Text style={styles.breakdownAmount}>Rs {item.amount.toLocaleString('en-IN')}</Text>
+                  </View>
+                )}
+              />
+            </View>
+            <SectionHeader title="Recent savings list" />
+          </View>
         }
         renderItem={({ item }) => (
           <View style={styles.savingItem}>
@@ -84,12 +62,7 @@ export function SavingsScreen() {
             <Text style={styles.time}>{item.time}</Text>
           </View>
         )}
-        ListFooterComponent={
-          <View style={styles.rateBox}>
-            <Text style={styles.rateText}>Rate us</Text>
-            <Text style={styles.stars}>★★★★★</Text>
-          </View>
-        }
+        ListFooterComponent={<View style={{ height: 84 }} />}
       />
     </View>
   );
@@ -99,105 +72,55 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    alignItems: 'center',
   },
   content: {
     width: '100%',
-    maxWidth: 520,
-    padding: theme.spacing.lg,
+    maxWidth: theme.layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: 16,
     gap: 12,
-    paddingBottom: 80,
+    paddingBottom: 110,
   },
-  proBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
-  },
-  proPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: theme.radius.full,
-  },
-  proPillText: {
-    color: '#1a1406',
-    fontWeight: '900',
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  proCaption: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  savingsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  valueCard: {
-    flex: 1,
-    borderRadius: theme.radius.lg,
-    padding: 14,
-  },
-  cardFrame: {
-    borderWidth: 1,
-    borderColor: 'rgba(201, 162, 39, 0.45)',
+  header: { gap: 14, marginBottom: 4 },
+  title: { color: theme.colors.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.7 },
+  sub: { color: theme.colors.subtext, fontSize: 14 },
+  totalCard: {
+    borderRadius: 20,
+    backgroundColor: theme.colors.secondary,
+    padding: 18,
     ...theme.shadow.card,
   },
-  valueLabel: {
-    color: 'rgba(255,255,255,0.88)',
-    fontWeight: '600',
-    fontSize: 12,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
-  },
-  valueText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 26,
-    marginTop: 6,
-    letterSpacing: -0.5,
-  },
+  totalLabel: { color: '#E0E7FF', fontSize: 12, fontWeight: '700' },
+  totalValue: { color: '#FFFFFF', fontSize: 34, fontWeight: '900', marginTop: 4 },
+  totalHint: { color: '#EEF2FF', fontSize: 12, marginTop: 4, fontWeight: '600' },
   chartWrap: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.accentMuted,
-    paddingVertical: 12,
-    marginTop: 6,
+    borderColor: theme.colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     ...theme.shadow.soft,
   },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    paddingHorizontal: 12,
-    letterSpacing: -0.3,
-  },
-  sectionHint: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: theme.colors.textMuted,
-    paddingHorizontal: 12,
-    marginBottom: 6,
-    marginTop: 2,
-  },
-  listSectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginTop: 8,
-    letterSpacing: -0.2,
-  },
-  chart: {
-    borderRadius: 12,
-  },
-  savingItem: {
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.lg,
+  chartRow: { gap: 16, alignItems: 'flex-end', paddingHorizontal: 10 },
+  barCol: { alignItems: 'center', gap: 8 },
+  bar: { width: 28, backgroundColor: theme.colors.primary, borderRadius: 14 },
+  barLabel: { color: theme.colors.subtext, fontSize: 12, fontWeight: '600' },
+  breakdownWrap: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
+    padding: 12,
+  },
+  breakdownItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+  breakdownLabel: { color: theme.colors.text, fontWeight: '600' },
+  breakdownAmount: { color: theme.colors.primary, fontWeight: '800' },
+  savingItem: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,35 +133,16 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
   },
   itemSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: theme.colors.subtext,
     marginTop: 2,
   },
   time: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.subtext,
     fontSize: 12,
     fontWeight: '600',
-  },
-  rateBox: {
-    marginTop: 6,
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-  },
-  rateText: {
-    fontWeight: '700',
-    fontSize: 18,
-    color: theme.colors.textPrimary,
-  },
-  stars: {
-    color: theme.colors.rating,
-    fontSize: 18,
   },
 });

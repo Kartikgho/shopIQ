@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { PREMIUM } from '@/components/auth/premiumAuthTheme';
@@ -9,26 +10,50 @@ type GradientButtonProps = {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
+  haptics?: boolean;
 };
 
-export function GradientButton({ title, onPress, loading, disabled }: GradientButtonProps) {
+export function GradientButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  haptics = true,
+}: GradientButtonProps) {
   const scale = useSharedValue(1);
+  const hover = useSharedValue(0);
   const inactive = Boolean(disabled || loading);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+    opacity: 1 - hover.value * 0.05,
   }));
 
   return (
     <Pressable
       onPress={() => {
-        if (!inactive) onPress();
+        if (!inactive) {
+          if (haptics) {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+          onPress();
+        }
       }}
       onPressIn={() => {
         if (!inactive) scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
       }}
       onPressOut={() => {
         scale.value = withSpring(1, { damping: 14, stiffness: 320 });
+      }}
+      onHoverIn={() => {
+        if (Platform.OS === 'web' && !inactive) {
+          hover.value = withSpring(1, { damping: 18, stiffness: 220 });
+        }
+      }}
+      onHoverOut={() => {
+        if (Platform.OS === 'web') {
+          hover.value = withSpring(0, { damping: 18, stiffness: 220 });
+        }
       }}
       disabled={inactive}
       style={[styles.hit, inactive && styles.hitDisabled]}>
@@ -53,16 +78,18 @@ export function GradientButton({ title, onPress, loading, disabled }: GradientBu
 
 const styles = StyleSheet.create({
   hit: {
-    marginTop: 6,
+    marginTop: 8,
     borderRadius: 14,
-    shadowColor: PREMIUM.accent,
+    opacity: 1,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' as const } : null),
+    shadowColor: PREMIUM.shadow,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 1,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 4,
   },
   hitDisabled: {
-    shadowOpacity: 0.08,
+    opacity: 0.5,
     elevation: 2,
   },
   animWrap: {
@@ -73,10 +100,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   inner: {
-    minHeight: 52,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
     paddingHorizontal: 24,
   },
   label: {
